@@ -1,20 +1,43 @@
 import React, {Component} from 'react';
 import "./login.less"
 import logo from './images/logo.png'
-import {Form, Icon, Input, Button} from 'antd';
+import {Form, Icon, Input, Button, message} from 'antd';
+import {reqLogin} from "../../api";
+import memoryUtils from '../../utils/memoryUtils';
+import storageUtils from '../../utils/storageUtils';
+import {Redirect} from "react-router-dom";
 
 class Login extends Component {
   handleSubmit = (event) => {
     const {validateFields} = this.props.form;
 
     event.preventDefault()
-    validateFields((error, values) => {
-      console.log(error, values)
+    validateFields(async (error, values) => {
+      if (error) {
+        return
+      } else {
+        let result = await reqLogin(values)
+        const user = result.data
+        if (result.status === 0) {
+          message.success('登录成功')
+          console.log(result)
+          memoryUtils.user = user
+          storageUtils.saveUser(user)
+          this.props.history.replace('/')
+        } else {
+          message.error('登录失败')
+        }
+      }
     })
   }
 
-
   render() {
+    const user = memoryUtils.user
+    if (user && user._id) {
+      return <Redirect to='/admin'/>
+    }
+
+
     const form = this.props.form;
     let {getFieldDecorator} = form
 
@@ -36,6 +59,7 @@ class Login extends Component {
                   {max: 12, message: 'username不能超过12位'},
                   {pattern: /^[a-zA-Z0-9_]+$/, message: '用户名必须是字母数字'}
                 ],
+                initialValue: 'admin'
               })(
                 <Input
                   prefix={<Icon type="user" style={{color: 'rgba(0,0,0,.25)'}}/>}
@@ -45,7 +69,7 @@ class Login extends Component {
             </Form.Item>
             <Form.Item>
               {getFieldDecorator('password', {
-                rules: [{required: true, message: 'Please input your Password!'}]
+                rules: [{required: true, message: 'Please input your Password!'}], initialValue: 'admin'
               })(<Input
                 prefix={<Icon type="lock" style={{color: 'rgba(0,0,0,.25)'}}/>}
                 type="password"
@@ -78,5 +102,15 @@ class Login extends Component {
  * 1. 高阶组件本质就是一个函数
  * 2. 接收一个组件（被包装组件），返回一个新的组件（包装组件），新组件内部渲染被包装组件
  * 3. 高阶组件也是一个高阶函数
+ *
+ *
+ *
+ * async  await
+ * 作用？
+ * 简化promise的使用，不用使用.then 指定回调
+ * 以同步编码（没有回调函数）方式实现一步流程
+ *
+ *
+ *
  */
 export default Form.create()(Login);
